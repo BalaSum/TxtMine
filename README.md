@@ -134,3 +134,126 @@ ggplot(data = pca_rep, mapping = aes(x = pc1, y = pc2, color = clust_id)) +
           legend.title = element_blank())
 ```
 
+
+library(tm)
+library(openNLP)
+
+# find path of the package and folder
+# txt <- system.file("texts", "txt", package = "tm")
+# ovid <- VCorpus(DirSource(txt, encoding = "UTF-8"),
+#                 readerControl = list(language = "lat"))
+# inspect(ovid[1:2])
+# inspect(ovid[[1]])
+
+# reut21578 <- system.file("texts", "crude", package = "tm")
+# 
+# ovid <-  VCorpus(DirSource(reut21578), readerControl = list(reader = readReut21578XMLasPlain)) 
+
+library(NLP)
+library(openNLP)
+library(magrittr)
+
+s <- paste(c(""),
+           collapse = "")
+s <- as.String(s)
+
+# bio <- as.String(s)
+
+getSentimant <- function(anot_kind,txt_string ){
+  
+  # browser()
+  word_ann <- Maxent_Word_Token_Annotator()
+  sent_ann <- Maxent_Sent_Token_Annotator()
+  
+  bio_annotations <- annotate(txt_string, list(sent_ann, word_ann))
+  
+  kind_ann <- Maxent_Entity_Annotator(kind = anot_kind)
+  
+  list(cbind(paste(anot_kind, ":"),t(txt_string[kind_ann(txt_string,bio_annotations)])))
+  # txt_string[kind_ann(txt_string,bio_annotations)]
+}
+
+kind_vec = c( "date", "location", "money", "organization", "percentage", "person" )
+
+# getSentimant("person",s)
+
+a <-lapply(kind_vec,getSentimant,s)
+
+
+library(syuzhet)
+library(plotly)
+library(tm)
+library(wordcloud)
+
+# bio = "Alcohol ads shown in Australia may be in breach of the advertising code, with many of the actors perceived to be younger than 25, a study has found."
+
+sent_token_annotator <- Maxent_Sent_Token_Annotator()
+word_token_annotator <- Maxent_Word_Token_Annotator()
+a2 <- annotate(s, sent_token_annotator)
+
+# bio <- s[a2]
+bio <- get_sentences(s)
+
+# Get sentiments using the four different lexicons
+syuzhet <- get_sentiment(bio, method="syuzhet")
+bing <- get_sentiment(bio, method="bing")
+afinn <- get_sentiment(bio, method="afinn")
+nrc <- get_sentiment(bio, method="nrc")
+sentiments <- data.frame(syuzhet, bing, afinn, nrc)
+
+
+library(ggplot2)
+
+senti.postive = sum(syuzhet[which(syuzhet>0)])
+senti.negative = sum(syuzhet[which(syuzhet<0)])
+df.senti <- as.data.frame(cbind(c("positive", "negative"),c(senti.postive,senti.negative)))
+
+p<-ggplot(data=df.senti, aes(x=V1, y=V2 ,fill=V1)) +
+  geom_bar(stat="identity")
+p
+
+
+# display positive and negative sentimant
+
+emotions <- get_nrc_sentiment(bio)
+emo_bar = colSums(emotions)
+emo_sum = data.frame(count=emo_bar, emotion=names(emo_bar))
+emo_sum$emotion = factor(emo_sum$emotion, levels=emo_sum$emotion[order(emo_sum$count, decreasing = TRUE)])
+
+
+# Visualize the emotions from NRC sentiments
+# plot_ly(emo_sum, x=~emotion, y=~count, type="bar", color=~emotion) %>%
+#   layout(xaxis=list(title=""), showlegend=FALSE,
+#          title="Distribution of emotion categories for HDB (1-10 June 2017)")
+
+
+p<-ggplot(data=emo_sum, aes(x=emotion, y=count ,fill=emotion)) +
+  geom_bar(stat="identity")
+  
+p
+
+
+
+
+
+
+
+# 
+# some_txt=c(tweets$Text)
+# # remove retweet entities
+# some_txt = gsub("(RT|via)((?:\\b\\W*@\\w+)+)", "", some_txt)
+# # remove at people
+# some_txt = gsub("@\\w+", "", some_txt)
+# # remove punctuation
+# some_txt = gsub("[[:punct:]]", " ", some_txt)
+# # remove numbers
+# some_txt = gsub("[[:digit:]]", "", some_txt)
+# # remove html links
+# some_txt = gsub("http\\w+", "", some_txt)
+# # remove unnecessary spaces
+# some_txt = gsub("[ \t]{2,}", " ", some_txt)
+# some_txt = gsub("^\\s+|\\s+$", " ", some_txt)
+
+
+
+
